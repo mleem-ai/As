@@ -1,1 +1,0 @@
-web: gunicorn asmain:app --bind 0.0.0.0:10000
