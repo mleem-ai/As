@@ -1,6 +1,26 @@
 import telebot
 import os
 from dotenv import load_dotenv
+from flask import Flask
+import threading
+import logging
+
+# =============================================
+# Настройка Flask (для Render Web Service)
+# =============================================
+app = Flask(__name__)
+
+@app.route('/')
+def home():
+    """Фейковый веб-сервер для обхода ограничений Render"""
+    return "🤖 Telegram Bot is running! (Render.com Web Service)"
+
+def run_flask():
+    app.run(host='0.0.0.0', port=10000)
+
+# =============================================
+# Оригинальный код бота (без изменений)
+# =============================================
 
 # Load configuration
 load_dotenv()
@@ -112,10 +132,29 @@ def process_answers(message):
         print(f"Error: {e}")
         bot.send_message(message.chat.id, TEXTS["error"])
 
-# Start the bot
+# =============================================
+# Запуск Flask и бота
+# =============================================
 if __name__ == '__main__':
-    print("Bot is running...")
+    # Настройка логирования
+    logging.basicConfig(
+        level=logging.INFO,
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+    )
+    logger = logging.getLogger(__name__)
+
+    # Запуск Flask в фоновом потоке
+    flask_thread = threading.Thread(target=run_flask)
+    flask_thread.daemon = True
+    flask_thread.start()
+
+    # Запуск бота с обработкой ошибок
+    logger.info("Starting bot and Flask server...")
     try:
         bot.infinity_polling()
     except Exception as e:
-        print(f"Bot crashed with error: {e}")
+        logger.error(f"Bot crashed: {e}")
+        # Автоматический перезапуск через 5 секунд
+        import time
+        time.sleep(5)
+        os.execv(sys.executable, ['python'] + sys.argv)

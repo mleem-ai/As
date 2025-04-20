@@ -1,15 +1,3 @@
-# Секретные данные
 .env
-.env.*
-
-# Кеш Python
 __pycache__/
-*.py[cod]
-
-# Логи и базы
-*.log
-*.db
-
-# Системные файлы
-.DS_Store
-.idea/
+*.pyc
