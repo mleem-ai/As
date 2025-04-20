@@ -4,6 +4,8 @@ from dotenv import load_dotenv
 from flask import Flask
 import threading
 import logging
+import sys
+import time
 
 # =============================================
 # Настройка Flask (для Render Web Service)
@@ -12,14 +14,16 @@ app = Flask(__name__)
 
 @app.route('/')
 def home():
-    """Фейковый веб-сервер для обхода ограничений Render"""
-    return "🤖 Telegram Bot is running! (Render.com Web Service)"
+    """Фейковый веб-сервер для Render"""
+    return "🤖 Telegram Bot is running! (Render.com)"
 
-def run_flask():
-    app.run(host='0.0.0.0', port=10000)
+@app.route('/ping')
+def ping():
+    """Эндпоинт для поддержания активности"""
+    return "pong"
 
 # =============================================
-# Оригинальный код бота (без изменений)
+# Оригинальный функционал бота
 # =============================================
 
 # Load configuration
@@ -132,29 +136,35 @@ def process_answers(message):
         print(f"Error: {e}")
         bot.send_message(message.chat.id, TEXTS["error"])
 
+def run_bot():
+    """Запуск бота с обработкой ошибок"""
+    while True:
+        try:
+            logging.info("Starting Telegram bot...")
+            bot.infinity_polling()
+        except Exception as e:
+            logging.error(f"Bot crashed: {e}")
+            time.sleep(5)
+
 # =============================================
-# Запуск Flask и бота
+# Запуск приложения
 # =============================================
 if __name__ == '__main__':
     # Настройка логирования
     logging.basicConfig(
         level=logging.INFO,
-        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s'
+        format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+        handlers=[
+            logging.StreamHandler(sys.stdout)
+        ]
     )
     logger = logging.getLogger(__name__)
 
-    # Запуск Flask в фоновом потоке
-    flask_thread = threading.Thread(target=run_flask)
-    flask_thread.daemon = True
-    flask_thread.start()
+    # Запуск бота в отдельном потоке
+    bot_thread = threading.Thread(target=run_bot)
+    bot_thread.daemon = True
+    bot_thread.start()
 
-    # Запуск бота с обработкой ошибок
-    logger.info("Starting bot and Flask server...")
-    try:
-        bot.infinity_polling()
-    except Exception as e:
-        logger.error(f"Bot crashed: {e}")
-        # Автоматический перезапуск через 5 секунд
-        import time
-        time.sleep(5)
-        os.execv(sys.executable, ['python'] + sys.argv)
+    # Запуск Flask
+    logger.info("Starting Flask server on port 10000...")
+    app.run(host='0.0.0.0', port=10000)
